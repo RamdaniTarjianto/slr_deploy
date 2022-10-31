@@ -7,41 +7,66 @@ import numpy as np
 from keras.models import load_model
 from tensorflow import keras
 import tensorflow as tf
-
+import string
 from keras.preprocessing.text import Tokenizer, text_to_word_sequence
 from keras_preprocessing.sequence import pad_sequences
 import pickle
+from nltk.stem import WordNetLemmatizer
+import json
+import nltk
+import pandas as pd
+nltk.download('wordnet')
+nltk.download('omw-1.4')
 
-# import logging
-# log = logging.getLogger('werkzeug')
-# log.setLevel(logging.ERROR)
 
 np.random.seed(1337)
-
-# graph = tf.get_default_graph()
-
 model = tensorflow.keras.models.load_model("model_fasttext_lstm.h5")
-# label = ["Hourse", "Human"]
 
 #star Flask application
 app = Flask(__name__)
+
 
 #load tokenizer pickle file
 with open('tokenizer.pickle', 'rb') as handle:
     tok = pickle.load(handle)
 
+def to_lower_case(texts):
+	texts["title_abstract"] = [entry.lower() for entry in texts["title_abstract"]]
+	return texts
+
+
+def remove_punctuation(texts):
+    """custom function to remove the punctuation"""
+    PUNCT_TO_REMOVE = string.punctuation
+    return texts.translate(str.maketrans('', '', PUNCT_TO_REMOVE))
+
+def lemmatize_words(texts):
+    lemmatizer = WordNetLemmatizer()
+    return " ".join([lemmatizer.lemmatize(word) for word in texts.split()])
+
 def preprocess_text(texts, max_review_length = 120):
     #tok = Tokenizer(num_words=num_max)
     #tok.fit_on_texts(texts)
+    # texts = lambda texts: remove_punctuation(text)
+    texts = to_lower_case(texts)
+    texts = texts["title_abstract"].apply(lambda texts: remove_punctuation(texts))
+    texts = texts.apply(lambda texts: lemmatize_words(texts))
+
     lstm_texts_seq = tok.texts_to_sequences(texts)
     lstm_texts_mat = pad_sequences(lstm_texts_seq, maxlen=max_review_length)
     return lstm_texts_mat
 
-@app.route('/predict',methods=['POST'])
+@app.route('/predict',methods=["GET", "POST"])
 
 def predict():
     text = request.args.get('text')
-    x = preprocess_text([text])
+    data_teks = {'title_abstract': text}
+    df = (pd.DataFrame(data_teks, index=[0]))
+    x = preprocess_text(df)
+
+
+    # x = preprocess_text([text])
+
     # with graph.as_default():
     #     y = int(np.round(model.predict(x)))
     #     if y == 1:
