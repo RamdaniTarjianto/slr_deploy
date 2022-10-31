@@ -50,7 +50,7 @@ def preprocess_text(texts, max_review_length = 120):
     # texts = lambda texts: remove_punctuation(text)
     texts = to_lower_case(texts)
     texts = texts["title_abstract"].apply(lambda texts: remove_punctuation(texts))
-    texts = texts.apply(lambda texts: lemmatize_words(texts))
+#     texts = texts.apply(lambda texts: lemmatize_words(texts))
 
     lstm_texts_seq = tok.texts_to_sequences(texts)
     lstm_texts_mat = pad_sequences(lstm_texts_seq, maxlen=max_review_length)
